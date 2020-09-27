@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-LED_COUNT = 100
+#LED_COUNT = 100
 
 import time
 
@@ -9,9 +9,9 @@ import neopixel
 
 
 class CloudLights:
-    def __init__(self):
-        self.pixels = neopixel.NeoPixel(board.D18, LED_COUNT)
-        self.LED_COUNT = LED_COUNT
+    def __init__(self, led_count, brightness=1.0):
+        self.pixels = neopixel.NeoPixel(board.D18, led_count, brightness=brightness)
+        self.LED_COUNT = led_count
 
     def lightning(self, start=0, length=10, flashes=5):
         current = start
@@ -67,7 +67,7 @@ class CloudLights:
         transitions = []
         for i in range(0, steps):
             transitions.append([])
-        for i in range(0, LED_COUNT):
+        for i in range(0, self.LED_COUNT):
             initial = self.pixels[i]
             transitions.append([])
             (init_red, init_green, init_blue) = initial
