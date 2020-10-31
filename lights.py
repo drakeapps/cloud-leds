@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-#LED_COUNT = 100
 
 import time
 from random import randint
@@ -36,7 +35,7 @@ class CloudLights:
 
 
     def adjust_brightness(self, brightness):
-         """
+        """
             recreates neopixel object with new brightness value
             (may not work correctly)
 
