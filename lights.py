@@ -41,7 +41,21 @@ class CloudLights:
 
             brightness: 0.0-1.0 value for brightness
         """
-        self.pixels =  neopixel.NeoPixel(board.D18, self.LED_COUNT, brightness=brightness)
+        self.pixels = neopixel.NeoPixel(board.D18, self.LED_COUNT, brightness=brightness)
+
+    def write_strip(self, leds, start=0, end=None):
+        """
+            writes the leds array to the strip adjusting the colors for the self_brightness value
+
+            leds: list of colors for the LEDs
+
+            start: start of the write on the strip
+                default: 0
+            
+            end: end of the write on the strip
+                default: None (end of the strip)
+        """
+        self.pixels[0:] = list(map(lambda z: tuple(round(y*self.brightness) for y in z), leds))
     
     def fixcolor(self, color, brightness=None):
         if not brightness:
@@ -76,18 +90,18 @@ class CloudLights:
         for i in range(current, end):
             original.append(self.pixels[i])
         for i in range(0,length):
-            lights.append((self.fixcolor(255, brightness=brightness), self.fixcolor(255, brightness=brightness), self.fixcolor(255, brightness=brightness)))
+            lights.append((255, 255, 255))
             dark.append((0,0,0))
             
 
         for i in range(0,flashes):
             #for j in range(current,end):
             #    self.pixels[j] = (0,0,0)
-            self.pixels[current:end] = lights
+            self.write_strip(lights, start=current, end=end)
             time.sleep(0.01)
             #for j in range(current,end):
             #    self.pixels[j] = (255,255,255)
-            self.pixels[current:end] = dark
+            self.write_strip(dark, start=current, end=end)
             time.sleep(0.03)
         self.pixels[current:end] = original
         #for i in range(current, end):
@@ -111,20 +125,22 @@ class CloudLights:
             self.lightning(start=start, length=amount, flashes=flashes)
 
 
-    """
-        transition
+    def transition(self, color=(0,0,0), strip=None, length=60, interval=0.05, step_callback=None):
+        """
+            color: tuple of RGB colors to transition all LEDs too
+                default: (0,0,0)
 
-        color: tuple of RGB colors to transition all LEDs too
+            strip: instead of color, send the colors or the individual LEDs
+                default: None
 
-        length: seconds to transition to that color
-            default: 60
+            length: seconds to transition to that color
+                default: 60
 
-        interval:
-            seconds between color changes
-            default: 0.05
+            interval:
+                seconds between color changes
+                default: 0.05
 
-    """
-    def transition(self, color=(0,0,0), length=60, interval=0.05, step_callback=None):
+        """
         # this isn't effecient when talking about memory consumption
         # but we can transition to a randnom rainbow to a different rainbow 
         steps = int(length / interval)
@@ -148,7 +164,7 @@ class CloudLights:
         for i in range(0,steps):
             print(f"step: {i}")
             start_time = time.time()
-            self.pixels[0:] = transitions[i]
+            self.write_strip(transitions[i])
             if step_callback:
                 step_callback(self)
             now = time.time()
@@ -240,7 +256,8 @@ class CloudLights:
             'orange':   (255, 128, 0),
             'cerulean': (255, 255, 0),
             'purple':   (128, 0, 255),
-            'pink':     (255, 0, 255)
+            'pink':     (255, 0, 255),
+            'white':    (255, 255, 255)
         }
 
         return random.choice(list(colors.values()))
