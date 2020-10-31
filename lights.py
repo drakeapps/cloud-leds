@@ -31,6 +31,8 @@ class CloudLights:
 
             brightness: 0.0-1.0 value
         """
+        if brightness < 0.0 or brightness > 1.0:
+            raise Exception('Invalid brightness', 'Must be between 0.0 - 1.0')
         self.brightness = brightness
 
 
@@ -42,6 +44,22 @@ class CloudLights:
             brightness: 0.0-1.0 value for brightness
         """
         self.pixels = neopixel.NeoPixel(board.D18, self.LED_COUNT, brightness=brightness)
+
+    def translate_brightness(self, leds):
+        """
+            translates a list of LED colors to reduced color based on brightness
+
+            leds: list of RGB tuples
+        """
+        return list(map(lambda z: tuple(round(y*self.brightness) for y in z), leds))
+
+    def reverse_brightness(self, leds):
+        """
+            translates a list of LED colors to original color based on brightness
+
+            leds: list of RGB tuples
+        """
+        return list(map(lambda z: tuple( (round(y/self.brightness) if round(y/self.brightness) <= 255 else 255) for y in z), leds))
 
     def write_strip(self, leds, start=0, end=None):
         """
@@ -55,12 +73,7 @@ class CloudLights:
             end: end of the write on the strip
                 default: None (end of the strip)
         """
-        self.pixels[0:] = list(map(lambda z: tuple(round(y*self.brightness) for y in z), leds))
-    
-    def fixcolor(self, color, brightness=None):
-        if not brightness:
-            brightness = self.brightness
-        return round(color * brightness)
+        self.pixels[0:] = self.translate_brightness(leds)
 
     def lightning(self, start=0, length=10, flashes=5, brightness=None):
         """
@@ -149,7 +162,7 @@ class CloudLights:
         for i in range(0, steps):
             transitions.append([])
         for i in range(0, self.LED_COUNT):
-            initial = self.pixels[i]
+            initial = self.reverse_brightness(list(self.pixels[i]))[0]
             transitions.append([])
             (init_red, init_green, init_blue) = initial
             step_red = (red - init_red) / steps
@@ -245,7 +258,7 @@ class CloudLights:
     
 
     def random_solid_color (self):
-        return (randint(0,self.fixcolor(255)), randint(0,self.fixcolor(255)), randint(0,self.fixcolor(255)))
+        return (randint(0,255), randint(0,255), randint(0,255))
 
     def random_known_color (self, color=None):
         colors = {
