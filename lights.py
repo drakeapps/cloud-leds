@@ -1,36 +1,108 @@
 #!/usr/bin/env python3
 
-#LED_COUNT = 100
 
 import time
 from random import randint
 from random import choices
+import random
+import colorsys
 
 import board
 import neopixel
 
 
 class CloudLights:
-    def __init__(self, led_count, brightness=1.0):
+    def __init__(self, led_count, brightness=1.0, self_brightness=1.0):
         self.pixels = neopixel.NeoPixel(board.D18, led_count, brightness=brightness)
+        self.brightness = self_brightness
         self.LED_COUNT = led_count
+        self._color = (0, 0, 0)
     
+    def set_self_brightness(self, brightness):
+        """
+            set the brightness level adjustment for the automated
+            color functions. instead of setting a brightness on the strip,
+            which is questionable at working, this sets the multiplier we
+            use to set the color levels
+
+            so brightness of 0.1 will cause RGB (255, 255, 255) to become
+            (25, 25, 25) making it effectively 10% brightness
+
+            use self.fixcolor([0-255]) to adjust full color down to brightness levels
+            TODO: wrapper for writing the colors
+
+            brightness: 0.0-1.0 value
+        """
+        if brightness < 0.0 or brightness > 1.0:
+            raise Exception('Invalid brightness', 'Must be between 0.0 - 1.0')
+        self.brightness = brightness
+
+    def get_rgb(self):
+        return self._color
+
+    def get_hsv(self):
+        return colorsys.rgb_to_hsv(*self._color)
+
+    def set_color(self, color):
+        """
+            take RGB value of LEDS and reverses internal brightness set the color
+        """
+        self._color = self.reverse_brightness([color])[0]
+
     def adjust_brightness(self, brightness):
-        self.pixels =  neopixel.NeoPixel(board.D18, self.LED_COUNT, brightness=brightness)
+        """
+            recreates neopixel object with new brightness value
+            (may not work correctly)
 
-    """
-        lightning
+            brightness: 0.0-1.0 value for brightness
+        """
+        self.pixels = neopixel.NeoPixel(board.D18, self.LED_COUNT, brightness=brightness)
 
-        simulates lightning by quickly flashing a section of lights
+    def translate_brightness(self, leds):
+        """
+            translates a list of LED colors to reduced color based on brightness
 
-        start: where lightning begins
+            leds: list of RGB tuples
+        """
+        return list(map(lambda z: tuple(round(y*self.brightness) for y in z), leds))
 
-        length: number of LEDs to flash
+    def reverse_brightness(self, leds):
+        """
+            translates a list of LED colors to original color based on brightness
 
-        flashes: number of flashes
+            leds: list of RGB tuples
+        """
+        return list(map(lambda z: tuple( (round(y/self.brightness) if round(y/self.brightness) <= 255 else 255) for y in z), leds))
+
+    def write_strip(self, leds, start=0, end=None):
+        """
+            writes the leds array to the strip adjusting the colors for the self_brightness value
+
+            leds: list of colors for the LEDs
+
+            start: start of the write on the strip
+                default: 0
             
-    """
-    def lightning(self, start=0, length=10, flashes=5):
+            end: end of the write on the strip
+                default: None (end of the strip)
+        """
+        self.set_color(leds[0])
+        self.pixels[0:] = self.translate_brightness(leds)
+
+    def lightning(self, start=0, length=10, flashes=5, brightness=None):
+        """
+            simulates lightning by quickly flashing a section of lights
+
+            start: where lightning begins
+
+            length: number of LEDs to flash
+
+            flashes: number of flashes
+
+            brightness: 0-1 value to override the self_brightness level
+                
+        """
+        
         current = start
         end = current + length
 
@@ -45,18 +117,18 @@ class CloudLights:
         for i in range(current, end):
             original.append(self.pixels[i])
         for i in range(0,length):
-            lights.append((255,255,255))
+            lights.append((255, 255, 255))
             dark.append((0,0,0))
             
 
         for i in range(0,flashes):
             #for j in range(current,end):
             #    self.pixels[j] = (0,0,0)
-            self.pixels[current:end] = lights
+            self.write_strip(lights, start=current, end=end)
             time.sleep(0.01)
             #for j in range(current,end):
             #    self.pixels[j] = (255,255,255)
-            self.pixels[current:end] = dark
+            self.write_strip(dark, start=current, end=end)
             time.sleep(0.03)
         self.pixels[current:end] = original
         #for i in range(current, end):
@@ -64,19 +136,38 @@ class CloudLights:
         #    time.sleep(0.01)
 
     """
-        transition
+        random_lightning
 
-        color: tuple of RGB colors to transition all LEDs too
+        callback for transitions to add a random bit of flashing 
+        to be shown to simulate lightning
 
-        length: seconds to transition to that color
-            default: 60
-
-        interval:
-            seconds between color changes
-            default: 0.05
+        chances: 1 in chances amount to do the lightning
 
     """
-    def transition(self, color, length=60, interval=0.05, step_callback=None):
+    def random_lightning(self, chances=10000):
+        if randint(0,chances) == 0:
+            amount = randint(5,15)
+            start = randint(0, self.LED_COUNT- amount)
+            flashes = randint(3,7)
+            self.lightning(start=start, length=amount, flashes=flashes)
+
+
+    def transition(self, color=(0,0,0), strip=None, length=60, interval=0.05, step_callback=None):
+        """
+            color: tuple of RGB colors to transition all LEDs too
+                default: (0,0,0)
+
+            strip: instead of color, send the colors or the individual LEDs
+                default: None
+
+            length: seconds to transition to that color
+                default: 60
+
+            interval:
+                seconds between color changes
+                default: 0.05
+
+        """
         # this isn't effecient when talking about memory consumption
         # but we can transition to a randnom rainbow to a different rainbow 
         steps = int(length / interval)
@@ -85,7 +176,7 @@ class CloudLights:
         for i in range(0, steps):
             transitions.append([])
         for i in range(0, self.LED_COUNT):
-            initial = self.pixels[i]
+            initial = self.reverse_brightness([self.pixels[i]])[0]
             transitions.append([])
             (init_red, init_green, init_blue) = initial
             step_red = (red - init_red) / steps
@@ -100,7 +191,7 @@ class CloudLights:
         for i in range(0,steps):
             print(f"step: {i}")
             start_time = time.time()
-            self.pixels[0:] = transitions[i]
+            self.write_strip(transitions[i])
             if step_callback:
                 step_callback(self)
             now = time.time()
@@ -161,3 +252,39 @@ class CloudLights:
     def off(self):
         self.pixels.fill((0,0,0))
 
+
+    def random_callback_transitions(self, color_callback, length=15, interval=0.4, lightning_chances=None, step_callback=None):
+        """
+        randomly transitions to colors based on callback passed down
+
+        note: I don't actually know if this is needed, it's kinda just wrapping the transition callback
+            it kinda makes it easier to 
+
+        :param lightning_chances: 1 in chances for lightning to occur
+        """
+        if step_callback:
+            callback = step_callback
+        elif lightning_chances:
+            callback = lambda x:  x.random_lightning(chances=lightning_chances)
+        else:
+            callback = lambda x: None
+        self.transition(color_callback, length=15, interval=0.4, step_callback=callback)
+    
+
+    def random_solid_color (self):
+        return (randint(0,255), randint(0,255), randint(0,255))
+
+    def random_known_color (self, color=None):
+        colors = {
+            'red':      (255, 0, 0),
+            'green':    (0, 255, 0),
+            'blue':     (0, 0, 255),
+            'yellow':   (255, 255, 0),
+            'orange':   (255, 128, 0),
+            'cerulean': (255, 255, 0),
+            'purple':   (128, 0, 255),
+            'pink':     (255, 0, 255),
+            'white':    (255, 255, 255)
+        }
+
+        return random.choice(list(colors.values()))
