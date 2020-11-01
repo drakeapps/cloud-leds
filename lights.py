@@ -162,7 +162,7 @@ class CloudLights:
         for i in range(0, steps):
             transitions.append([])
         for i in range(0, self.LED_COUNT):
-            initial = self.reverse_brightness(list(self.pixels[i]))[0]
+            initial = self.reverse_brightness([self.pixels[i]])[0]
             transitions.append([])
             (init_red, init_green, init_blue) = initial
             step_red = (red - init_red) / steps
