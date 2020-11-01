@@ -5,6 +5,7 @@ import time
 from random import randint
 from random import choices
 import random
+import colorsys
 
 import board
 import neopixel
@@ -15,6 +16,7 @@ class CloudLights:
         self.pixels = neopixel.NeoPixel(board.D18, led_count, brightness=brightness)
         self.brightness = self_brightness
         self.LED_COUNT = led_count
+        self._color = (0, 0, 0)
     
     def set_self_brightness(self, brightness):
         """
@@ -35,6 +37,17 @@ class CloudLights:
             raise Exception('Invalid brightness', 'Must be between 0.0 - 1.0')
         self.brightness = brightness
 
+    def get_rgb(self):
+        return self._color
+
+    def get_hsv(self):
+        return colorsys.rgb_to_hsv(*self._color)
+
+    def set_color(self, color):
+        """
+            take RGB value of LEDS and reverses internal brightness set the color
+        """
+        self._color = self.reverse_brightness([color])[0]
 
     def adjust_brightness(self, brightness):
         """
@@ -73,6 +86,7 @@ class CloudLights:
             end: end of the write on the strip
                 default: None (end of the strip)
         """
+        self.set_color(leds[0])
         self.pixels[0:] = self.translate_brightness(leds)
 
     def lightning(self, start=0, length=10, flashes=5, brightness=None):
