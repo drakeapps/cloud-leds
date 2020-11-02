@@ -45,9 +45,11 @@ class CloudLights:
 
     def set_color(self, color):
         """
-            take RGB value of LEDS and reverses internal brightness set the color
+            take RGB value of LEDS and translates and reverses internal brightness to set the color
+            
+            this is to correct any rounding error that comes up from the conversion
         """
-        self._color = self.reverse_brightness([color])[0]
+        self._color = self.reverse_brightness(self.translate_brightness([color]))[0]
 
     def adjust_brightness(self, brightness):
         """
@@ -86,6 +88,7 @@ class CloudLights:
             end: end of the write on the strip
                 default: None (end of the strip)
         """
+        # take the first color of the first 
         self.set_color(leds[0])
         self.pixels[0:] = self.translate_brightness(leds)
 
