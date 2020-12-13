@@ -12,7 +12,8 @@ import neopixel
 
 
 class CloudLights:
-    def __init__(self, n_pixels=100, brightness=1.0, self_brightness=1.0):
+    def __init__(self, n_pixels=250, brightness=1.0, self_brightness=1.0):
+        print(f"creating CloudLights with {n_pixels} lights with {self_brightness} self brightness")
         self.pixels = neopixel.NeoPixel(board.D18, n_pixels, brightness=brightness)
         self.brightness = self_brightness
         self.LED_COUNT = n_pixels
