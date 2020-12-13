@@ -18,6 +18,7 @@ class CloudLights:
         self.brightness = self_brightness
         self.LED_COUNT = n_pixels
         self._color = (0, 0, 0)
+        self.off()
     
     def set_self_brightness(self, brightness):
         """
