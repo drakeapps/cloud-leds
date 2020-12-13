@@ -176,6 +176,7 @@ class CloudLights:
         # but we can transition to a randnom rainbow to a different rainbow 
         steps = int(length / interval)
         (red, green, blue) = color
+        print("transition to: red {red} green {green} blue {blue}")
         transitions = []
         for i in range(0, steps):
             transitions.append([])
